@@ -1,49 +1,171 @@
 <!DOCTYPE html>
-<html>
+<html lang="bn">
 <head>
-    <title>My Personal AI Chatbot</title>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AI Chatbot</title>
     <style>
-        body { font-family: Arial, sans-serif; max-width: 600px; margin: auto; padding: 20px; }
-        #chatbox { border: 1px solid #ccc; padding: 10px; height: 400px; overflow-y: scroll; margin-bottom: 10px; }
-        input[type=text] { width: 80%; padding: 10px; }
-        button { padding: 10px; }
-        b { color: #333; }
+        body {
+            font-family: Arial, sans-serif;
+            margin: 0;
+            background: #f0f2f5;
+        }
+
+        .chat-container {
+            max-width: 500px;
+            margin: 0 auto;
+            display: flex;
+            flex-direction: column;
+            height: 100vh;
+            border: 1px solid #ddd;
+            background: #fff;
+        }
+
+        .messages {
+            flex: 1;
+            padding: 10px;
+            overflow-y: auto;
+        }
+
+        .message {
+            padding: 10px 15px;
+            margin: 6px 0;
+            border-radius: 20px;
+            max-width: 80%;
+            word-wrap: break-word;
+        }
+
+        .user {
+            background-color: #0084ff;
+            color: white;
+            align-self: flex-end;
+        }
+
+        .bot {
+            background-color: #e5e5ea;
+            color: black;
+            align-self: flex-start;
+        }
+
+        /* Typing animation dots */
+        .typing {
+            font-style: italic;
+            opacity: 0.7;
+            position: relative;
+        }
+
+        .typing::after {
+            content: '';
+            display: inline-block;
+            width: 6px;
+            height: 6px;
+            margin-left: 3px;
+            border-radius: 50%;
+            background-color: #555;
+            animation: blink 1s infinite step-start;
+        }
+
+        .typing::after {
+            animation-delay: 0s;
+        }
+
+        @keyframes blink {
+            0%, 80%, 100% { opacity: 0; }
+            40% { opacity: 1; }
+        }
+
+        .input-container {
+            display: flex;
+            border-top: 1px solid #ddd;
+        }
+
+        input {
+            flex: 1;
+            padding: 12px;
+            border: none;
+            outline: none;
+            font-size: 16px;
+        }
+
+        button {
+            padding: 12px;
+            border: none;
+            background: #0084ff;
+            color: white;
+            font-size: 16px;
+            cursor: pointer;
+        }
+
+        @media screen and (max-width: 600px) {
+            .chat-container {
+                border: none;
+            }
+        }
     </style>
 </head>
 <body>
-    <h2>My Personal AI Chatbot</h2>
-    <div id="chatbox"></div>
-    <input type="text" id="userInput" placeholder="Type here..." />
-    <button onclick="sendMessage()">Send</button>
 
-    <script>
-        async function sendMessage() {
-            let message = document.getElementById("userInput").value;
-            if (!message) return;
+<div class="chat-container">
+    <div class="messages" id="messages"></div>
+    <div class="input-container">
+        <input type="text" id="userInput" placeholder="Message লিখুন..." onkeypress="if(event.key==='Enter'){sendMessage();}">
+        <button onclick="sendMessage()">Send</button>
+    </div>
+</div>
 
-            // Show user message
-            let chatbox = document.getElementById("chatbox");
-            chatbox.innerHTML += "<b>You:</b> " + message + "<br>";
-            chatbox.scrollTop = chatbox.scrollHeight;
+<script>
+const messagesDiv = document.getElementById("messages");
 
-            // Send to backend
-            let response = await fetch("/chat", {
-                method: "POST",
-                headers: {"Content-Type": "application/json"},
-                body: JSON.stringify({message: message})
-            });
+function addMessage(text, sender) {
+    const msgDiv = document.createElement("div");
+    msgDiv.classList.add("message", sender);
+    msgDiv.textContent = text;
+    messagesDiv.appendChild(msgDiv);
+    messagesDiv.scrollTop = messagesDiv.scrollHeight;
+}
 
-            let data = await response.json();
-            chatbox.innerHTML += "<b>Bot:</b> " + data.reply + "<br>";
-            chatbox.scrollTop = chatbox.scrollHeight;
+// Typing animation
+function addTypingAnimation() {
+    const typingDiv = document.createElement("div");
+    typingDiv.classList.add("message", "bot", "typing");
+    typingDiv.textContent = "Typing";
+    messagesDiv.appendChild(typingDiv);
+    messagesDiv.scrollTop = messagesDiv.scrollHeight;
+    return typingDiv;
+}
 
-            document.getElementById("userInput").value = "";
-        }
+async function sendMessage() {
+    const userInput = document.getElementById("userInput");
+    const message = userInput.value.trim();
+    if (!message) return;
 
-        // Enter key press
-        document.getElementById("userInput").addEventListener("keypress", function(e) {
-            if (e.key === "Enter") sendMessage();
+    addMessage(message, "user");
+    userInput.value = "";
+
+    // Show typing animation
+    const typingDiv = addTypingAnimation();
+
+    try {
+        const response = await fetch("/chat", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ message })
         });
-    </script>
+
+        const data = await response.json();
+
+        // Remove typing animation
+        typingDiv.remove();
+
+        // Add bot response
+        addMessage(data.reply, "bot");
+    } catch (err) {
+        typingDiv.remove();
+        addMessage("Bot error! আবার চেষ্টা করুন।", "bot");
+        console.error(err);
+    }
+}
+</script>
+
 </body>
 </html>
